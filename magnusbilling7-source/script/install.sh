@@ -30,11 +30,13 @@ get_linux_distribution ()
         DIST="DEBIAN"
         HTTP_DIR="/etc/apache2/"
         HTTP_CONFIG=${HTTP_DIR}"apache2.conf"
+										  
         MYSQL_CONFIG="/etc/mysql/mariadb.conf.d/50-server.cnf"
     elif [ -f /etc/redhat-release ]; then
         DIST="CENTOS"
         HTTP_DIR="/etc/httpd/"
         HTTP_CONFIG=${HTTP_DIR}"conf/httpd.conf"
+							  
         MYSQL_CONFIG="/etc/my.cnf"
     else
         DIST="OTHER"
@@ -126,6 +128,7 @@ set_timezone ()
     ln -s $directory /etc/localtime
     phptimezone="${directory//\/usr\/share\/zoneinfo\//}"
     phptimezone="${phptimezone////\/}"
+																 
     systemctl reload httpd
   fi
 
@@ -171,7 +174,10 @@ if [ ${DIST} = "DEBIAN" ]; then
     apt-get -o Acquire::Check-Valid-Until=false update 
     apt-get install -y autoconf automake devscripts gawk ntpdate ntp g++ git-core curl sudo xmlstarlet  apache2 libjansson-dev git  odbcinst1debian2 libodbc1 odbcinst unixodbc unixodbc-dev 
     apt-get install -y php-fpm php  php-dev php-common php-cli php-gd php-pear php-cli php-sqlite3 php-curl php-mbstring unzip libapache2-mod-php uuid-dev libxml2 libxml2-dev openssl libcurl4-openssl-dev gettext gcc g++ libncurses5-dev sqlite3 libsqlite3-dev subversion mpg123
+																							  
+																																					 
     apt-get -y install mariadb-server php-mysql
+											
     apt-get install -y  unzip git libcurl4-openssl-dev htop sngrep
 elif  [ ${DIST} = "CENTOS" ]; then
     yum clean all
@@ -188,6 +194,10 @@ elif  [ ${DIST} = "CENTOS" ]; then
 fi
 
 PHP_INI=$(php -i | grep /.+/php.ini -oE)
+					   
+							 
+				
+																	  
 
 mkdir -p /var/www/html/mbilling
 cd /var/www/html/mbilling
@@ -216,6 +226,7 @@ cd /usr/src
 rm -rf asterisk*
 clear
 mv /var/www/html/mbilling/script/asterisk-13.35.0.tar.gz /usr/src/
+																																					  
 tar xzvf asterisk-13.35.0.tar.gz
 rm -rf asterisk-13.35.0.tar.gz
 cd asterisk-*
@@ -244,6 +255,10 @@ ldconfig
 
 clear
 
+	
+										   
+	
+	   
 
 if [ ${DIST} = "CENTOS" ]; then
 cd /usr/src
@@ -253,6 +268,19 @@ cd sngrep
 ./configure
 make && make install 
 clear
+
+							   
+							   
+					 
+						  
+					   
+						
+				  
+				  
+					   
+					   
+					  
+												 
 fi
 
 
@@ -392,6 +420,7 @@ fi
 
 
 mysql -uroot -e "SET PASSWORD FOR 'root'@localhost = PASSWORD('${password}'); FLUSH PRIVILEGES;"
+  
 
 
 
@@ -425,6 +454,7 @@ datadir   = /var/lib/mysql
 tmpdir    = /tmp
 lc-messages-dir = /usr/share/mysql
 skip-external-locking
+						   
 max_connections = 500
 key_buffer_size   = 64M
 max_allowed_packet  = 64M
@@ -593,6 +623,9 @@ echo "#include extensions_magnus.conf" >> /etc/asterisk/extensions.conf
 echo '#include extensions_magnus_did.conf' >> /etc/asterisk/extensions.conf
 echo "#include musiconhold_magnus.conf" >> /etc/asterisk/musiconhold.conf
 echo "#include voicemail_magnus.conf" >> /etc/asterisk/voicemail.conf
+				
+											  
+								
 
 echo "
 noload => res_config_sqlite3.so
@@ -667,6 +700,7 @@ if [ ${DIST} = "DEBIAN" ]; then
 mysql -uroot -p${password} -e "update mysql.user set plugin='' where User='root';"
 fi;
 mysql mbilling -u root -p${password}  < /var/www/html/mbilling/script/database.sql
+								 
 rm -rf /var/www/html/mbilling/script
 
 echo "[general]
@@ -754,9 +788,15 @@ echo "
 1 * * * * php /var/www/html/mbilling/cron.php NotifyClient
 1 22 * * * php /var/www/html/mbilling/cron.php DidCheck
 1 23 * * * php /var/www/html/mbilling/cron.php PlanCheck
+* * * * * php /var/www/html/mbilling/cron.php MassiveCall
+* * * * * php /var/www/html/mbilling/cron.php Sms
+														 
+																   
 0 2 * * * php /var/www/html/mbilling/cron.php Backup
 0 4 * * * /var/www/html/mbilling/protected/commands/clear_memory
+							  
 */2 * * * * php /var/www/html/mbilling/cron.php SummaryTablesCdr
+														  
 */3 * * * * php /var/www/html/mbilling/cron.php PhoneBooksReprocess
 * * * * * php /var/www/html/mbilling/cron.php statussystem
 * * * * * php /var/www/html/mbilling/cron.php didwww
@@ -833,6 +873,13 @@ systemctl daemon-reload
 
 install_fail2ban()
 {
+		 
+													
+				  
+						 
+
+								 
+   
   if [ ${DIST} = "CENTOS" ]; then
     yum install -y iptables-services
     yum install -y fail2ban
@@ -861,6 +908,7 @@ ssh_port=$(cat /etc/ssh/sshd_config | grep Port |  awk 'NR==1{print $2}')
 
 install_fail2ban
 
+							  
 iptables -F
 iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
 iptables -A OUTPUT -p icmp --icmp-type echo-reply -j ACCEPT
@@ -1060,13 +1108,19 @@ ignoreregex =
 echo "
 [general]
 dateformat=%F %T
+			   
 
 [logfiles]
+									  
 console => error
+													
 messages => notice,warning,error
 magnus => debug
+
 " > /etc/asterisk/logger.conf
 
+								   
+																					  
 if [ ${DIST} = "CENTOS" ]; then  
   cp -rf /tmp/fail2ban/build/fail2ban.service /usr/lib/systemd/system/fail2ban.service
 fi
@@ -1087,6 +1141,9 @@ chmod -R 777 /tmp
 chmod -R 555 /var/www/html/mbilling/
 chmod -R 750 /var/www/html/mbilling/resources/reports 
 chmod -R 774 /var/www/html/mbilling/protected/runtime/
+chmod +x /var/www/html/mbilling/agi.php
+									 
+									 
 mkdir -p /usr/local/src/magnus/monitor
 mkdir -p /usr/local/src/magnus/sounds
 mkdir -p /usr/local/src/magnus/backup
