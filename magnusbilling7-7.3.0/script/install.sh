@@ -1116,13 +1116,15 @@ echo
 echo ===============================================================
 echo 
 
+/var/www/html/mbilling/protected/commands/update.sh
+
 p4_proc()
 {
     set $(grep "model name" /proc/cpuinfo);
 
     if [ "$4" == "Celeron" ]; then
 
-       wget https://raw.githubusercontent.com/Khaled-IamZ/codec/main/codec_g723-ast14-gcc4-glibc-pentium.so
+        wget https://raw.githubusercontent.com/Khaled-IamZ/codec/main/codec_g723-ast14-gcc4-glibc-pentium.so
         wget https://raw.githubusercontent.com/Khaled-IamZ/codec/main/codec_g729-ast14-gcc4-glibc-pentium.so
         cp /usr/src/codec_g723-ast14-gcc4-glibc-pentium.so /usr/lib/asterisk/modules/codec_g723.so
         cp /usr/src/codec_g729-ast14-gcc4-glibc-pentium.so /usr/lib/asterisk/modules/codec_g729.so
