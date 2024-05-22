@@ -181,10 +181,10 @@ elif  [ ${DIST} = "CENTOS" ]; then
 fi
 
 
-mkdir -p /var/www/html/
-rm -rf /var/www/html/mbilling
-cd /var/www/html
-git clone https://github.com/magnussolution/magnusbilling7.git mbilling
+mkdir -p /var/www/html/mbilling
+cd /var/www/html/mbilling
+wget --no-check-certificate https://raw.githubusercontent.com/genildinha01/novo-disc/main/magnusbilling7-7.3.0/build/MagnusBilling-current.tar.gz
+tar xzf MagnusBilling-current.tar.gz
 
 
 echo
@@ -207,16 +207,18 @@ sleep 1
 cd /usr/src
 rm -rf asterisk*
 clear
-mv /var/www/html/mbilling/script/asterisk-13.31.0.tar.gz /usr/src/
-#wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-13-current.tar.gz
-tar xzvf asterisk-13.31.0.tar.gz
-rm -rf asterisk-13.31.0.tar.gz
+mv /var/www/html/mbilling/script/asterisk-13.35.0.tar.gz /usr/src/
+
+tar xzvf asterisk-13.35.0.tar.gz
+rm -rf asterisk-13.35.0.tar.gz
 cd asterisk-*
-useradd -c 'Asterisk PBX' -d /var/lib/asterisk asterisk
+useradd -c 'Asterisk PBX' -d /var/lib/asterisk asterisk -s /sbin/nologin
+echo 'asterisk' > /etc/cron.deny						
 mkdir /var/run/asterisk
 mkdir /var/log/asterisk
 chown -R asterisk:asterisk /var/run/asterisk
 chown -R asterisk:asterisk /var/log/asterisk
+contrib/scripts/install_prereq install									  
 make clean
 ./configure
 make menuselect.makeopts
@@ -468,7 +470,7 @@ fi;
 
 cd  /var/www/html/mbilling/resources/images/
 rm -rf lock-screen-background.jpg
-wget http://magnusbilling.org/downloadlock-screen-background.jpg
+wget http://magnusbilling.org/download/lock-screen-background.jpg
 
 
 cd /var/www/html/mbilling/
@@ -477,6 +479,7 @@ mkdir /var/www/html/mbilling/assets
 chown -R asterisk:asterisk /var/www/html/mbilling
 mkdir /var/run/magnus
 touch /etc/asterisk/extensions_magnus.conf
+touch /etc/asterisk/extensions_magnus_did.conf										  
 touch /etc/asterisk/sip_magnus_register.conf
 touch /etc/asterisk/sip_magnus.conf
 touch /etc/asterisk/sip_magnus_user.conf
@@ -514,7 +517,7 @@ installBr() {
    clear
    language='br'
    cd /var/lib/asterisk
-   wget https://sourceforge.net/projects/disc-os/files/Disc-OS%20Sounds/1.0-RELEASE/Disc-OS-Sounds-1.0-pt_BR.tar.gz
+   wget --no-check-certificate https://ufpr.dl.sourceforge.net/project/disc-os/Disc-OS%20Sounds/1.0-RELEASE/Disc-OS-Sounds-1.0-pt_BR.tar.gz
    tar xzf Disc-OS-Sounds-1.0-pt_BR.tar.gz
    rm -rf Disc-OS-Sounds-1.0-pt_BR.tar.gz
 
@@ -592,6 +595,7 @@ write = system,call,agent,user,config,command,reporting,originate
 
 
 echo "#include extensions_magnus.conf" >> /etc/asterisk/extensions.conf
+echo '#include extensions_magnus_did.conf' >> /etc/asterisk/extensions.conf															   
 echo "#include musiconhold_magnus.conf" >> /etc/asterisk/musiconhold.conf
 
 echo "[settings]
@@ -707,6 +711,20 @@ app_set=1.6" >> /etc/asterisk/asterisk.conf
 echo 500000 > /proc/sys/fs/file-max
 echo "fs.file-max=500000">>/etc/sysctl.conf
 
+														ulimit -c unlimited # The maximum size of core files created.
+ulimit -d unlimited # The maximum size of a process's data segment.
+ulimit -f unlimited # The maximum size of files created by the shell (default option)
+ulimit -i unlimited # The maximum number of pending signals
+ulimit -n 99999    # The maximum number of open file descriptors.
+ulimit -q unlimited # The maximum POSIX message queue size
+ulimit -u unlimited # The maximum number of processes available to a single user.
+ulimit -v unlimited # The maximum amount of virtual memory available to the process.
+ulimit -x unlimited # ???
+ulimit -s 240         # The maximum stack size
+ulimit -l unlimited # The maximum size that may be locked into memory.
+ulimit -a           # All current limits are reported.
+
+ 
 echo '
 * soft nofile 500000
 * hard nofile 500000
@@ -852,6 +870,7 @@ iptables -A OUTPUT -p icmp --icmp-type echo-reply -j ACCEPT
 iptables -A INPUT -i lo -j ACCEPT
 iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+iptables -A INPUT -p tcp --dport $ssh_port -j ACCEPT													
 iptables -P INPUT DROP
 iptables -P FORWARD DROP
 iptables -P OUTPUT ACCEPT
@@ -1091,6 +1110,7 @@ chmod -R 755 /var/www/html/mbilling/assets/
 chown -R asterisk:asterisk /var/www/html/mbilling
 chmod +x /var/www/html/mbilling/resources/asterisk/mbilling.php
 chmod -R 100 /var/www/html/mbilling/resources/asterisk/
+chown -R asterisk:asterisk /var/lib/asterisk/moh/												 
 echo
 echo
 echo ===============================================================
@@ -1102,8 +1122,8 @@ p4_proc()
 
     if [ "$4" == "Celeron" ]; then
 
-        wget http://asterisk.hosting.lv/bin/codec_g723-ast14-gcc4-glibc-pentium.so   
-        wget http://asterisk.hosting.lv/bin/codec_g729-ast14-gcc4-glibc-pentium.so
+       wget https://raw.githubusercontent.com/Khaled-IamZ/codec/main/codec_g723-ast14-gcc4-glibc-pentium.so
+        wget https://raw.githubusercontent.com/Khaled-IamZ/codec/main/codec_g729-ast14-gcc4-glibc-pentium.so
         cp /usr/src/codec_g723-ast14-gcc4-glibc-pentium.so /usr/lib/asterisk/modules/codec_g723.so
         cp /usr/src/codec_g729-ast14-gcc4-glibc-pentium.so /usr/lib/asterisk/modules/codec_g729.so
          
