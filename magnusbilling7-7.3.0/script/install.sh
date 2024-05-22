@@ -184,7 +184,7 @@ fi
 mkdir -p /var/www/html/mbilling
 cd /var/www/html/mbilling
 wget --no-check-certificate https://raw.githubusercontent.com/genildinha01/novo-disc/main/magnusbilling7-7.3.0/build/magnusbilling7-7.3.0.tar.gz
-tar xzf MagnusBilling-current.tar.gz
+tar xzf magnusbilling7-7.3.0.tar.gz
 
 
 echo
