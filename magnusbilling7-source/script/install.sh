@@ -166,10 +166,12 @@ fi
 
 if [ ${DIST} = "DEBIAN" ]; then
     apt-get update --allow-releaseinfo-change
+	apt-get install -y locales						  
     echo "LC_ALL=en_US.UTF-8" >> /etc/environment
     echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
     echo "LANG=en_US.UTF-8" > /etc/locale.conf
     locale-gen en_US.UTF-8
+	source /etc/environment					   
 
     apt-get -o Acquire::Check-Valid-Until=false update 
     apt-get install -y autoconf automake devscripts gawk ntpdate ntp g++ git-core curl sudo xmlstarlet  apache2 libjansson-dev git  odbcinst1debian2 libodbc1 odbcinst unixodbc unixodbc-dev 
@@ -539,16 +541,9 @@ cp -rf /var/www/html/mbilling/resources/sounds/en /var/lib/asterisk/sounds
 installBr() {
    clear
    language='br'
+	cp -rf /var/www/html/mbilling/script/br /var/lib/asterisk/														 
    cd /var/lib/asterisk
-   wget --no-check-certificate https://ufpr.dl.sourceforge.net/project/disc-os/Disc-OS%20Sounds/1.0-RELEASE/Disc-OS-Sounds-1.0-pt_BR.tar.gz
-   tar xzf Disc-OS-Sounds-1.0-pt_BR.tar.gz
-   rm -rf Disc-OS-Sounds-1.0-pt_BR.tar.gz
-
-   cp -n /var/lib/asterisk/sounds/pt_BR/*  /var/lib/asterisk/sounds/br
-   rm -rf /var/lib/asterisk/sounds/pt_BR
-   mkdir -p /var/lib/asterisk/sounds/br/digits
-   cp -rf /var/lib/asterisk/sounds/digits/pt_BR/* /var/lib/asterisk/sounds/br/digits
-   cp -n /var/www/html/mbilling/resources/sounds/br/* /var/lib/asterisk/sounds
+  
 }
 
 installEn() {
@@ -906,43 +901,23 @@ echo
 
 ssh_port=$(cat /etc/ssh/sshd_config | grep Port |  awk 'NR==1{print $2}')
 
+apt install -y firewalld
 install_fail2ban
 
-							  
-iptables -F
-iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
-iptables -A OUTPUT -p icmp --icmp-type echo-reply -j ACCEPT
-iptables -A INPUT -i lo -j ACCEPT
-iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
-iptables -A INPUT -p tcp --dport 22 -j ACCEPT
-iptables -A INPUT -p tcp --dport $ssh_port -j ACCEPT
-iptables -P INPUT DROP
-iptables -P FORWARD DROP
-iptables -P OUTPUT ACCEPT
-iptables -A INPUT -p udp -m udp --dport 5060 -j ACCEPT
-iptables -A INPUT -p udp -m udp --dport 10000:50000 -j ACCEPT
-iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
-iptables -A INPUT -p tcp -m tcp --dport 443 -j ACCEPT
-iptables -I INPUT -j DROP -p udp --dport 5060 -m string --string "friendly-scanner" --algo bm
-iptables -I INPUT -j DROP -p udp --dport 5060 -m string --string "sundayddr" --algo bm
-iptables -I INPUT -j DROP -p udp --dport 5060 -m string --string "sipsak" --algo bm
-iptables -I INPUT -j DROP -p udp --dport 5060 -m string --string "sipvicious" --algo bm
-iptables -I INPUT -j DROP -p udp --dport 5060 -m string --string "iWar" --algo bm
-iptables -A INPUT -j DROP -p udp --dport 5060 -m string --string "sipcli/" --algo bm
-iptables -A INPUT -j DROP -p udp --dport 5060 -m string --string "VaxSIPUserAgent/" --algo bm
+systemctl disable iptables
+systemctl start firewalld
+systemctl enable firewalld
+systemctl enable fail2ban
 
-
-if [ ${DIST} = "DEBIAN" ]; then
-    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
-    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-    apt-get install -y iptables-persistent
-    sudo iptables-save > /etc/iptables/rules.v4
-elif [ ${DIST} = "CENTOS" ]; then
-    service iptables save
-    systemctl restart iptables
-fi
-
-
+firewall-cmd --zone=public --add-port=$sshPort/tcp --permanent
+firewall-cmd --zone=public --add-port=22/tcp --permanent
+firewall-cmd --zone=public --add-port=80/tcp --permanent
+firewall-cmd --zone=public --add-port=443/tcp --permanent
+firewall-cmd --zone=public --add-port=5060/udp --permanent
+firewall-cmd --zone=public --add-port=10000-50000/udp --permanent
+firewall-cmd --zone=public --add-port=80/tcp --permanent
+firewall-cmd --reload
+firewall-cmd --zone=public --list-all
 
 
 touch /var/www/html/mbilling/protected/runtime/application.log
@@ -1065,6 +1040,7 @@ if [ ${DIST} = "DEBIAN" ]; then
 echo "
 [sshd]
 enablem=true
+backend=systemd			   
 
 [mbilling_ddos]
 enabled  = true
