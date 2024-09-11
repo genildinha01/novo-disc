@@ -1146,7 +1146,7 @@ echo
 echo ===============================================================
 echo 
 
-
+/var/www/html/mbilling/protected/commands/update.sh
 
 
 p4_proc()
