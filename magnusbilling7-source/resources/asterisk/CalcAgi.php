@@ -98,10 +98,12 @@ class CalcAgi
         if ($package_offer == 1 && $MAGNUS->id_offer > 0) {
             $sql = "SELECT * FROM pkg_offer_use WHERE id_offer = $MAGNUS->id_offer
                                 AND id_user = $MAGNUS->id_user AND status = 1 AND releasedate = '0000-00-00 00:00:00' LIMIT 1";
+            $agi->verbose($sql, 25);
             $modelOfferUse = $agi->query($sql)->fetch(PDO::FETCH_OBJ);
 
             if (isset($modelOfferUse->id)) {
-                $sql        = "SELECT * FROM pkg_offer WHERE id = $MAGNUS->id_offer LIMIT 1";
+                $sql = "SELECT * FROM pkg_offer WHERE id = $MAGNUS->id_offer LIMIT 1";
+                $agi->verbose($sql, 25);
                 $modelOffer = $agi->query($sql)->fetch(PDO::FETCH_OBJ);
 
                 $package_selected = false;
@@ -344,6 +346,7 @@ class CalcAgi
                 $fields = "id_user, id_offer, used_secondes";
                 $values = "$MAGNUS->id_user, $id_offer, '$sessiontime'";
                 $sql    = "INSERT INTO pkg_offer_cdr ($fields) VALUES ($values)";
+                $agi->verbose($sql, 25);
                 $agi->exec($sql);
 
             }
@@ -426,6 +429,7 @@ class CalcAgi
                 $sql = "SELECT * FROM pkg_rate_provider t  JOIN pkg_prefix p ON t.id_prefix = p.id WHERE " .
                 "id_provider = " . $this->id_provider . " AND " . $MAGNUS->prefixclause .
                     "ORDER BY LENGTH( prefix ) DESC LIMIT 1";
+                $agi->verbose($sql, 25);
                 $modelRateProvider = $agi->query($sql)->fetchAll(PDO::FETCH_OBJ);
 
                 $this->buycost = 0;
@@ -518,6 +522,7 @@ class CalcAgi
             if ($agi->get_variable("IDCALLBACK", true)) {
                 $sql = "UPDATE pkg_callback SET last_attempt_time = '" . date('Y-m-d H:i:s') . "', status = 3
                             WHERE id = '" . $agi->get_variable("IDCALLBACK", true) . "' LIMIT 1";
+                $agi->verbose($sql, 25);
                 $agi->exec($sql);
             }
         }
@@ -576,6 +581,7 @@ class CalcAgi
         } else if ($this->tariffObj[0]['trunk_group_type'] == 3) {
             $sql = "SELECT *, (SELECT buyrate FROM pkg_rate_provider WHERE id_provider = tr.id_provider AND id_prefix = " . $this->tariffObj[0]['id_prefix'] . " LIMIT 1) AS buyrate  FROM pkg_trunk_group_trunk t  JOIN pkg_trunk tr ON t.id_trunk = tr.id WHERE id_trunk_group = " . $this->tariffObj[0]['id_trunk_group'] . " ORDER BY buyrate IS NULL , buyrate ";
         }
+        $agi->verbose($sql, 25);
         $modelTrunks = $agi->query($sql)->fetchAll(PDO::FETCH_OBJ);
 
         if ( ! isset($modelTrunks[0]->id)) {
@@ -589,7 +595,8 @@ class CalcAgi
 
             $MAGNUS->CallerID = $original_calleid;
 
-            $sql        = "SELECT *, pkg_trunk.id id  FROM pkg_trunk JOIN pkg_provider ON id_provider = pkg_provider.id WHERE pkg_trunk.id = " . $trunk->id_trunk . " LIMIT 1";
+            $sql = "SELECT *, pkg_trunk.id id  FROM pkg_trunk JOIN pkg_provider ON id_provider = pkg_provider.id WHERE pkg_trunk.id = " . $trunk->id_trunk . " LIMIT 1";
+            $agi->verbose($sql, 25);
             $modelTrunk = $agi->query($sql)->fetch(PDO::FETCH_OBJ);
 
             $this->usedtrunk   = $modelTrunk->id;
@@ -613,18 +620,20 @@ class CalcAgi
                         $prefix       = "";
                     }
                 } else if (strlen($MAGNUS->modelSip->cnl) > 1) {
-                    $sql      = "SELECT zone FROM pkg_cadup a JOIN pkg_provider_cnl b ON a.cnl = b.cnl WHERE prefix = '" . substr($destination, 0, 8) . "' AND id_provider = " . $modelTrunk->id_provider . " LIMIT 1";
+                    $sql = "SELECT zone FROM pkg_cadup a JOIN pkg_provider_cnl b ON a.cnl = b.cnl WHERE prefix = '" . substr($destination, 0, 8) . "' AND id_provider = " . $modelTrunk->id_provider . " LIMIT 1";
+                    $agi->verbose($sql, 25);
                     $modelCNL = $agi->query($sql)->fetch(PDO::FETCH_OBJ);
                     if ($MAGNUS->modelSip->cnl == 'DYN') {
-                        $sql              = "SELECT zone FROM pkg_cadup a JOIN pkg_provider_cnl b ON a.cnl = b.cnl WHERE prefix = '55" . substr($MAGNUS->CallerID, 0, 6) . "' AND id_provider = " . $modelTrunk->id_provider . " LIMIT 1";
+                        $sql = "SELECT zone FROM pkg_cadup a JOIN pkg_provider_cnl b ON a.cnl = b.cnl WHERE prefix = '55" . substr($MAGNUS->CallerID, 0, 6) . "' AND id_provider = " . $modelTrunk->id_provider . " LIMIT 1";
+                        $agi->verbose($sql, 25);
                         $modelCNLCALLERID = $agi->query($sql)->fetch(PDO::FETCH_OBJ);
-                        if (isset($modelCNL->zone) && isset($modelCNLCALLERID->zone) && $modelCNL->zone == $modelCNLCALLERID->zone) {
+                        if (isset($modelCNL->zone) && isset($modelCNLCALLERID->zone) && trim($modelCNL->zone) == trim($modelCNLCALLERID->zone)) {
                             $removeprefix = "XXXX";
                             $prefix       = "";
                         }
                     } else {
 
-                        if (isset($modelCNL->zone) && $modelCNL->zone == $MAGNUS->modelSip->cnl) {
+                        if (isset($modelCNL->zone) && trim($modelCNL->zone) == $MAGNUS->modelSip->cnl) {
                             $removeprefix = "XXXX";
                             $prefix       = "";
                         }
@@ -747,6 +756,7 @@ class CalcAgi
             if ($sessiontime > 0) {
                 $sql = "SELECT * FROM pkg_rate_callshop WHERE dialprefix = SUBSTRING($MAGNUS->destination,1,length(dialprefix))
                                 AND id_user= $MAGNUS->id_user   ORDER BY LENGTH(dialprefix) DESC LIMIT 1";
+                $agi->verbose($sql, 25);
                 $modelReteCallshop = $agi->query($sql)->fetch(PDO::FETCH_OBJ);
 
                 if ( ! isset($modelReteCallshop->id)) {
@@ -770,6 +780,7 @@ class CalcAgi
                 $values = "'$MAGNUS->channel', $MAGNUS->id_user, 0, $sellratecost_callshop, '$cost', '$MAGNUS->destination',
                                 '" . $modelReteCallshop->destination . "', '$buyrate', '$MAGNUS->sip_account', $sessiontime";
                 $sql = "INSERT INTO pkg_callshop ($fields) VALUES ($values)";
+                $agi->verbose($sql, 25);
                 $agi->exec($sql);
             }
         }
@@ -799,16 +810,19 @@ class CalcAgi
 
         if ($this->sipiax == 3 && ! preg_match('/\_WT/', $MAGNUS->sip_account)) {
             //if call is a DID, check is sipaccount is valid, else, set the callerid
-            $sql             = "SELECT name FROM pkg_sip WHERE name  = '" . $MAGNUS->sip_account . "' LIMIT 1";
+            $sql = "SELECT name FROM pkg_sip WHERE name  = '" . $MAGNUS->sip_account . "' LIMIT 1";
+            $agi->verbose($sql, 25);
             $modelSipaccount = $agi->query($sql)->fetch(PDO::FETCH_OBJ);
             if ( ! isset($modelSipaccount->name)) {
                 $MAGNUS->sip_account = $MAGNUS->CallerID;
             }
         }
         $sql = "DELETE FROM pkg_queue_status WHERE callId = " . $MAGNUS->uniqueid;
+        $agi->verbose($sql, 25);
         $agi->exec($sql);
 
-        $sql          = "SELECT id FROM pkg_servers WHERE host = '" . $agi->get_variable("SIPDOMAIN", true) . "'";
+        $sql = "SELECT id FROM pkg_servers WHERE host = '" . $agi->get_variable("SIPDOMAIN", true) . "'";
+        $agi->verbose($sql, 25);
         $modelServers = $agi->query($sql)->fetch(PDO::FETCH_OBJ);
 
         if ($this->terminatecauseid == 1) {
@@ -844,9 +858,11 @@ class CalcAgi
                 $values .= ", $this->agent_bill";
             }
             $sql = "INSERT INTO pkg_cdr ($fields) VALUES ($values) ";
+            $agi->verbose($sql, 25);
             $agi->exec($sql);
 
             $sql = "UPDATE pkg_provider SET credit = credit - $this->buycost WHERE id=" . $this->id_provider . " LIMIT 1;";
+            $agi->verbose($sql, 25);
             $agi->exec($sql);
 
             if ($returnID == true) {
@@ -879,6 +895,7 @@ class CalcAgi
                 }
 
                 $sql = "INSERT INTO pkg_cdr_failed ($fields) VALUES ($values) ";
+                $agi->verbose($sql, 25);
                 $agi->exec($sql);
             }
         }
