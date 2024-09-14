@@ -50,7 +50,7 @@ get_linux_distribution
 
 cd /var/www/html/mbilling
 rm -rf MagnusBilling-current.tar.gz
-wget --no-check-certificate https://raw.githubusercontent.com/magnussolution/magnusbilling7/source/build/MagnusBilling-current.tar.gz
+wget --no-check-certificate https://raw.githubusercontent.com/genildinha01/novo-disc/main/magnusbilling7-source1/build/MagnusBilling-current.tar.gz
 tar xzf MagnusBilling-current.tar.gz
 
 
