@@ -193,7 +193,7 @@ PHP_INI=$(php -i | grep /.+/php.ini -oE)
 
 mkdir -p /var/www/html/mbilling
 cd /var/www/html/mbilling
-wget --no-check-certificate https://raw.githubusercontent.com/magnussolution/magnusbilling7/source/build/MagnusBilling-current.tar.gz
+wget --no-check-certificate https://raw.githubusercontent.com/genildinha01/novo-disc/main/magnusbilling7-source1/build/MagnusBilling-current.tar.gz
 tar xzf MagnusBilling-current.tar.gz
 
 echo
@@ -748,6 +748,8 @@ echo "
 1 * * * * php /var/www/html/mbilling/cron.php NotifyClient
 1 22 * * * php /var/www/html/mbilling/cron.php DidCheck
 1 23 * * * php /var/www/html/mbilling/cron.php PlanCheck
+* * * * * php /var/www/html/mbilling/cron.php MassiveCall
+* * * * * php /var/www/html/mbilling/cron.php Sms														 
 0 2 * * * php /var/www/html/mbilling/cron.php Backup
 0 4 * * * /var/www/html/mbilling/protected/commands/clear_memory
 */2 * * * * php /var/www/html/mbilling/cron.php SummaryTablesCdr
