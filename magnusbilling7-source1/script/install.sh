@@ -221,8 +221,8 @@ mv /var/www/html/mbilling/script/asterisk-13.35.0.tar.gz /usr/src/
 tar xzvf asterisk-13.35.0.tar.gz
 rm -rf asterisk-13.35.0.tar.gz
 cd asterisk-*
-useradd -c 'Asterisk PBX' -d /var/lib/asterisk asterisk -s /sbin/nologin
-echo 'asterisk' > /etc/cron.deny
+useradd -c 'Asterisk PBX' -d /var/lib/asterisk asterisk
+
 mkdir /var/run/asterisk
 mkdir /var/log/asterisk
 chown -R asterisk:asterisk /var/run/asterisk
@@ -474,7 +474,7 @@ mkdir /var/www/html/mbilling/assets
 chown -R asterisk:asterisk /var/www/html/mbilling
 mkdir /var/run/magnus
 touch /etc/asterisk/extensions_magnus.conf
-touch /etc/asterisk/extensions_magnus_did.conf
+
 touch /etc/asterisk/sip_magnus_register.conf
 touch /etc/asterisk/sip_magnus.conf
 touch /etc/asterisk/sip_magnus_user.conf
@@ -583,7 +583,6 @@ write = system,call,agent,user,config,command,reporting,originate
 " > /etc/asterisk/manager.conf
 
 
-echo "#include extensions_magnus.conf" >> /etc/asterisk/extensions.conf
 echo '#include extensions_magnus_did.conf' >> /etc/asterisk/extensions.conf
 echo "#include musiconhold_magnus.conf" >> /etc/asterisk/musiconhold.conf
 echo "#include voicemail_magnus.conf" >> /etc/asterisk/voicemail.conf
@@ -829,6 +828,7 @@ systemctl daemon-reload
 
 install_fail2ban()
 {
+						  
   if [ ${DIST} = "CENTOS" ]; then
     yum install -y iptables-services
     yum install -y fail2ban
@@ -1060,7 +1060,7 @@ iptables -L -v
 php /var/www/html/mbilling/cron.php updatemysql
 
 
-chown -R asterisk:asterisk /var/lib/php/session*
+chown -R asterisk:asterisk /var/lib/php/session/
 chown -R asterisk:asterisk /var/spool/asterisk/outgoing/
 chown -R asterisk:asterisk /etc/asterisk
 chmod -R 777 /tmp
