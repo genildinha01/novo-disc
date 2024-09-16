@@ -18,11 +18,6 @@ echo
 
 sleep 3
 
-
-if [[ -f /var/www/html/mbilling/index.php ]]; then
-  echo "This server already has MagnusBilling installed";
-  exit;
-fi
 # Linux Distribution CentOS or Debian
 get_linux_distribution ()
 { 
@@ -30,13 +25,13 @@ get_linux_distribution ()
         DIST="DEBIAN"
         HTTP_DIR="/etc/apache2/"
         HTTP_CONFIG=${HTTP_DIR}"apache2.conf"
-										  
+        PHP_INI="/etc/php/7.0/cli/php.ini"
         MYSQL_CONFIG="/etc/mysql/mariadb.conf.d/50-server.cnf"
     elif [ -f /etc/redhat-release ]; then
         DIST="CENTOS"
         HTTP_DIR="/etc/httpd/"
         HTTP_CONFIG=${HTTP_DIR}"conf/httpd.conf"
-							  
+        PHP_INI="/etc/php.ini"
         MYSQL_CONFIG="/etc/my.cnf"
     else
         DIST="OTHER"
@@ -44,8 +39,6 @@ get_linux_distribution ()
         exit 1
     fi
 }
-
-
 
 get_linux_distribution
 
@@ -128,7 +121,7 @@ set_timezone ()
     ln -s $directory /etc/localtime
     phptimezone="${directory//\/usr\/share\/zoneinfo\//}"
     phptimezone="${phptimezone////\/}"
-																 
+    sed -i '/date.timezone/s/= .*/= '$phptimezone'/' /etc/php.ini
     systemctl reload httpd
   fi
 
@@ -158,29 +151,21 @@ fi
 if [ ${DIST} = "CENTOS" ]; then
 echo '[mariadb]
 name = MariaDB
-baseurl = https://yum.mariadb.org/10.11/centos7-amd64
+baseurl = http://yum.mariadb.org/10.1/centos7-amd64
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
-gpgcheck=1
-sslverify=0' > /etc/yum.repos.d/MariaDB.repo 
+gpgcheck=1' > /etc/yum.repos.d/MariaDB.repo 
 fi
 
 if [ ${DIST} = "DEBIAN" ]; then
-    apt-get update --allow-releaseinfo-change
-	apt-get install -y locales						  
-    echo "LC_ALL=en_US.UTF-8" >> /etc/environment
-    echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
-    echo "LANG=en_US.UTF-8" > /etc/locale.conf
-    locale-gen en_US.UTF-8
-	source /etc/environment					   
-
+    
     apt-get -o Acquire::Check-Valid-Until=false update 
-    apt-get install -y autoconf automake devscripts gawk ntpdate ntp g++ git-core curl sudo xmlstarlet  apache2 libjansson-dev git  odbcinst1debian2 libodbc1 odbcinst unixodbc unixodbc-dev 
-    apt-get install -y php-fpm php  php-dev php-common php-cli php-gd php-pear php-cli php-sqlite3 php-curl php-mbstring unzip libapache2-mod-php uuid-dev libxml2 libxml2-dev openssl libcurl4-openssl-dev gettext gcc g++ libncurses5-dev sqlite3 libsqlite3-dev subversion mpg123
-																							  
-																																					 
-    apt-get -y install mariadb-server php-mysql
-											
-    apt-get install -y  unzip git libcurl4-openssl-dev htop sngrep
+    apt-get install -y autoconf automake devscripts gawk ntpdate ntp g++ git-core curl sudo xmlstarlet libmyodbc unixodbc-bin apache2 libjansson-dev git
+    apt-get install -y php-fpm php php-mcrypt php-dev php-common php-cli php-gd php-pear php-cli php-sqlite3 php-curl php-mbstring unzip libapache2-mod-php uuid-dev libxml2 libxml2-dev openssl libcurl4-openssl-dev gettext gcc g++ libncurses5-dev sqlite3 libsqlite3-dev subversion mpg123
+    echo mysql-server mysql-server/root_password password ${password} | debconf-set-selections
+    echo mysql-server mysql-server/root_password_again password ${password} | debconf-set-selections            
+    apt-get install -y mysql-server php-mysql mysql-client unzip git
+    apt-get install -y unixODBC unixODBC-dev
+    apt-get install -y libmysqlclient15-dev libcurl4-openssl-dev ssmtp
 elif  [ ${DIST} = "CENTOS" ]; then
     yum clean all
     yum -y install kernel-devel.`uname -m` epel-release
@@ -188,23 +173,19 @@ elif  [ ${DIST} = "CENTOS" ]; then
     yum -y install yum-utils gcc.`uname -m` gcc-c++.`uname -m` make.`uname -m` git.`uname -m` wget.`uname -m` bison.`uname -m` openssl-devel.`uname -m` ncurses-devel.`uname -m` doxygen.`uname -m` newt-devel.`uname -m` mlocate.`uname -m` lynx.`uname -m` tar.`uname -m` wget.`uname -m` nmap.`uname -m` bzip2.`uname -m` mod_ssl.`uname -m` speex.`uname -m` speex-devel.`uname -m` unixODBC.`uname -m` unixODBC-devel.`uname -m` libtool-ltdl.`uname -m` sox libtool-ltdl-devel.`uname -m` flex.`uname -m` screen.`uname -m` autoconf automake libxml2.`uname -m` libxml2-devel.`uname -m` sqlite* subversion
     yum-config-manager --enable remi-php71
     yum -y install php.`uname -m` php-cli.`uname -m` php-devel.`uname -m` php-gd.`uname -m` php-mbstring.`uname -m` php-pdo.`uname -m` php-xml.`uname -m` php-xmlrpc.`uname -m` php-process.`uname -m` php-posix libuuid uuid uuid-devel libuuid-devel.`uname -m`
-    yum -y install jansson.`uname -m` jansson-devel.`uname -m` unzip.`uname -m` ntp
+    yum -y install jansson.`uname -m` jansson-devel.`uname -m` unzip.`uname -m` ntpd
     yum -y install mysql mariadb-server  mariadb-devel mariadb php-mysql mysql-connector-odbc
     yum -y install xmlstarlet libsrtp libsrtp-devel dmidecode gtk2-devel binutils-devel svn libtermcap-devel libtiff-devel audiofile-devel cronie cronie-anacron
     yum -y install perl perl-libwww-perl perl-LWP-Protocol-https perl-JSON cpan flac libcurl-devel nss
-    yum -y install libpcap-devel autoconf automake git ncurses-devel ssmtp htop
+    yum -y install libpcap-devel autoconf automake git ncurses-devel ssmtp
 fi
 
-PHP_INI=$(php -i | grep /.+/php.ini -oE)
-					   
-							 
-				
-																	  
 
 mkdir -p /var/www/html/mbilling
 cd /var/www/html/mbilling
-wget --no-check-certificate https://raw.githubusercontent.com/genildinha01/novo-disc/main/magnusbilling7-source/build/MagnusBilling-current.tar.gz
+wget --no-check-certificate https://raw.githubusercontent.com/genildinha01/novo-disc/main/magnusbilling7-source1/build/MagnusBilling-current.tar.gz
 tar xzf MagnusBilling-current.tar.gz
+
 
 echo
 echo '----------- Install PJPROJECT ----------'
@@ -219,7 +200,6 @@ make clean
 make && make install
 ldconfig
 
-
 echo
 echo '----------- Install Asterisk 13 ----------'
 echo
@@ -227,18 +207,16 @@ sleep 1
 cd /usr/src
 rm -rf asterisk*
 clear
-mv /var/www/html/mbilling/script/asterisk-13.35.0.tar.gz /usr/src/
-																																					  
-tar xzvf asterisk-13.35.0.tar.gz
-rm -rf asterisk-13.35.0.tar.gz
+mv /var/www/html/mbilling/script/asterisk-13.31.0.tar.gz /usr/src/
+#wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-13-current.tar.gz
+tar xzvf asterisk-13.31.0.tar.gz
+rm -rf asterisk-13.31.0.tar.gz
 cd asterisk-*
-useradd -c 'Asterisk PBX' -d /var/lib/asterisk asterisk -s /sbin/nologin
-echo 'asterisk' > /etc/cron.deny
+useradd -c 'Asterisk PBX' -d /var/lib/asterisk asterisk
 mkdir /var/run/asterisk
 mkdir /var/log/asterisk
 chown -R asterisk:asterisk /var/run/asterisk
 chown -R asterisk:asterisk /var/log/asterisk
-contrib/scripts/install_prereq install
 make clean
 ./configure
 make menuselect.makeopts
@@ -257,12 +235,11 @@ ldconfig
 
 clear
 
-	
-										   
-	
-	   
+echo
+echo '----------- Install SNGRP ----------'
+echo
+sleep 1
 
-if [ ${DIST} = "CENTOS" ]; then
 cd /usr/src
 git clone https://github.com/irontec/sngrep.git
 cd sngrep
@@ -271,18 +248,18 @@ cd sngrep
 make && make install 
 clear
 
-							   
-							   
-					 
-						  
-					   
-						
-				  
-				  
-					   
-					   
-					  
-												 
+if [ ${DIST} = "CENTOS" ]; then
+echo 'set filter.methods INVITE
+set cl.column0 method
+set cl.column1 sipfromuser
+set cl.column1.width 15
+set cl.column2 siptouser
+set cl.column3 src
+set cl.column4 dst
+set cl.column4.width 22
+set cl.column5 starting
+set cl.column6 warning
+set cl.column6.width 0' > /usr/local/etc/sngreprc
 fi
 
 
@@ -290,7 +267,7 @@ chmod -R 777 /tmp
  
 if [ ${DIST} = "CENTOS" ]; then
     cd /usr/src
-    wget --no-check-certificate http://magnussolution.com/download/mpg123-1.20.1.tar.bz2
+    wget http://magnussolution.com/download/mpg123-1.20.1.tar.bz2
     tar -xjvf mpg123-1.20.1.tar.bz2
     cd mpg123-1.20.1
     ./configure && make && make install
@@ -390,8 +367,7 @@ sed -i "s/upload_max_filesize = 2M/upload_max_filesize = 3M /" ${PHP_INI}
 sed -i "s/post_max_size = 8M/post_max_size = 20M/" ${PHP_INI}
 sed -i "s/max_execution_time = 30/max_execution_time = 90/" ${PHP_INI}
 sed -i "s/max_input_time = 60/max_input_time = 120/" ${PHP_INI}
-sed -i '/date.timezone/s/= .*/= '$phptimezone'/' ${PHP_INI}
-sed -i "s/session.cookie_secure = 1/" ${PHP_INI}
+sed -i "s/\;date.timezone =/date.timezone = America\/Sao_Paulo/" ${PHP_INI}
 if [ ${DIST} = "CENTOS" ]; then
     sed -i "s/User apache/User asterisk/" ${HTTP_CONFIG}
     sed -i "s/Group apache/Group asterisk/" ${HTTP_CONFIG}
@@ -408,9 +384,9 @@ echo
 
 
 if [ ${DIST} = "DEBIAN" ]; then
-    systemctl start mariadb
+    systemctl start mysql
     systemctl enable apache2 
-    systemctl enable mariadb
+    systemctl enable mysql
     chkconfig ntp on
 else [ -f /etc/redhat-release ]
     systemctl enable httpd
@@ -420,10 +396,9 @@ else [ -f /etc/redhat-release ]
 fi
 
 
-
-mysql -uroot -e "SET PASSWORD FOR 'root'@localhost = PASSWORD('${password}'); FLUSH PRIVILEGES;"
-  
-
+if [ ${DIST} = "CENTOS" ]; then
+  mysql -uroot -e "UPDATE mysql.user SET password=PASSWORD('${password}') WHERE user='root'; FLUSH PRIVILEGES;"
+fi
 
 
 if [ ${DIST} = "CENTOS" ]; then
@@ -456,22 +431,20 @@ datadir   = /var/lib/mysql
 tmpdir    = /tmp
 lc-messages-dir = /usr/share/mysql
 skip-external-locking
-						   
+bind-address    = 127.0.0.1
 max_connections = 500
-key_buffer_size   = 64M
-max_allowed_packet  = 64M
-thread_stack    = 1M
+key_buffer_size   = 16M
+max_allowed_packet  = 16M
+thread_stack    = 192K
 thread_cache_size       = 8
-query_cache_limit = 8M
-query_cache_size        = 64M
+query_cache_limit = 1M
+query_cache_size        = 16M
 log_error = /var/log/mysql/error.log
 expire_logs_days  = 10
-max_binlog_size   = 1G
+max_binlog_size   = 100M
 secure-file-priv = ""
 symbolic-links=0
-sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
-tmp_table_size=128MB
-open_files_limit=500000
+sql-mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
 
 [embedded]
 
@@ -495,7 +468,7 @@ fi;
 
 cd  /var/www/html/mbilling/resources/images/
 rm -rf lock-screen-background.jpg
-wget --no-check-certificate https://magnusbilling.org/download/lock-screen-background.jpg
+wget http://magnusbilling.org/downloadlock-screen-background.jpg
 
 
 cd /var/www/html/mbilling/
@@ -504,7 +477,6 @@ mkdir /var/www/html/mbilling/assets
 chown -R asterisk:asterisk /var/www/html/mbilling
 mkdir /var/run/magnus
 touch /etc/asterisk/extensions_magnus.conf
-touch /etc/asterisk/extensions_magnus_did.conf
 touch /etc/asterisk/sip_magnus_register.conf
 touch /etc/asterisk/sip_magnus.conf
 touch /etc/asterisk/sip_magnus_user.conf
@@ -541,9 +513,16 @@ cp -rf /var/www/html/mbilling/resources/sounds/en /var/lib/asterisk/sounds
 installBr() {
    clear
    language='br'
-	cp -rf /var/www/html/mbilling/script/br /var/lib/asterisk/														 
    cd /var/lib/asterisk
-  
+   wget https://sourceforge.net/projects/disc-os/files/Disc-OS%20Sounds/1.0-RELEASE/Disc-OS-Sounds-1.0-pt_BR.tar.gz
+   tar xzf Disc-OS-Sounds-1.0-pt_BR.tar.gz
+   rm -rf Disc-OS-Sounds-1.0-pt_BR.tar.gz
+
+   cp -n /var/lib/asterisk/sounds/pt_BR/*  /var/lib/asterisk/sounds/br
+   rm -rf /var/lib/asterisk/sounds/pt_BR
+   mkdir -p /var/lib/asterisk/sounds/br/digits
+   cp -rf /var/lib/asterisk/sounds/digits/pt_BR/* /var/lib/asterisk/sounds/br/digits
+   cp -n /var/www/html/mbilling/resources/sounds/br/* /var/lib/asterisk/sounds
 }
 
 installEn() {
@@ -584,8 +563,6 @@ echo $'[billing]
 exten => _[*0-9].,1,AGI("/var/www/html/mbilling/resources/asterisk/mbilling.php")
   same => n,Hangup()
 
-exten => _+X.,1,Goto(billing,${EXTEN:1},1)
-
 exten => h,1,hangup()
 
 exten => *111,1,VoiceMailMain(${CHANNEL(peername)}@billing)
@@ -615,12 +592,11 @@ write = system,call,agent,user,config,command,reporting,originate
 
 
 echo "#include extensions_magnus.conf" >> /etc/asterisk/extensions.conf
-echo '#include extensions_magnus_did.conf' >> /etc/asterisk/extensions.conf
 echo "#include musiconhold_magnus.conf" >> /etc/asterisk/musiconhold.conf
-echo "#include voicemail_magnus.conf" >> /etc/asterisk/voicemail.conf
-				
-											  
-								
+
+echo "[settings]
+voicemail => mysql,general,pkg_voicemail_users
+" > /etc/asterisk/extconfig.conf
 
 echo "
 noload => res_config_sqlite3.so
@@ -691,11 +667,9 @@ mysql -uroot -p${password} -e "create database mbilling;"
 mysql -uroot -p${password} -e "CREATE USER 'mbillingUser'@'localhost' IDENTIFIED BY '${MBillingMysqlPass}';"
 mysql -uroot -p${password} -e "GRANT ALL PRIVILEGES ON \`mbilling\` . * TO 'mbillingUser'@'localhost' WITH GRANT OPTION;FLUSH PRIVILEGES;"    
 mysql -uroot -p${password} -e "GRANT FILE ON * . * TO  'mbillingUser'@'localhost' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0;"
-if [ ${DIST} = "DEBIAN" ]; then
-mysql -uroot -p${password} -e "update mysql.user set plugin='' where User='root';"
-fi;
-mysql mbilling -u root -p${password}  < /var/www/html/mbilling/script/database.sql
-								 
+
+mysql mbilling -u root -p${password}  < /var/www/html/mbilling/doc/script.sql
+rm -rf /var/www/html/mbilling/doc
 rm -rf /var/www/html/mbilling/script
 
 echo "[general]
@@ -720,11 +694,9 @@ astlogdir => /var/log/asterisk
 
 echo "
 [options]
-documentation_language = en_US 
-verbose = 5
+verbose = 0
 debug = 0
 maxfiles = 500000
-hideconnect = 1
 
 [compat]
 pbx_realtime=1.6
@@ -734,21 +706,6 @@ app_set=1.6" >> /etc/asterisk/asterisk.conf
 
 echo 500000 > /proc/sys/fs/file-max
 echo "fs.file-max=500000">>/etc/sysctl.conf
-
-
-ulimit -c unlimited # The maximum size of core files created.
-ulimit -d unlimited # The maximum size of a process's data segment.
-ulimit -f unlimited # The maximum size of files created by the shell (default option)
-ulimit -i unlimited # The maximum number of pending signals
-ulimit -n 99999    # The maximum number of open file descriptors.
-ulimit -q unlimited # The maximum POSIX message queue size
-ulimit -u unlimited # The maximum number of processes available to a single user.
-ulimit -v unlimited # The maximum amount of virtual memory available to the process.
-ulimit -x unlimited # ???
-ulimit -s 240         # The maximum stack size
-ulimit -l unlimited # The maximum size that may be locked into memory.
-ulimit -a           # All current limits are reported.
-
 
 echo '
 * soft nofile 500000
@@ -785,25 +742,16 @@ echo "
 1 23 * * * php /var/www/html/mbilling/cron.php PlanCheck
 * * * * * php /var/www/html/mbilling/cron.php MassiveCall
 * * * * * php /var/www/html/mbilling/cron.php Sms
-														 
-																   
 0 2 * * * php /var/www/html/mbilling/cron.php Backup
-0 4 * * * /var/www/html/mbilling/protected/commands/clear_memory
-							  
-*/2 * * * * php /var/www/html/mbilling/cron.php SummaryTablesCdr
-														  
+0 4 * * * /var/www/html/mbilling/protected/commands/verificamemoria
+0 4 * * * php /var/www/html/mbilling/cron.php SummaryTablesCdr processCdrLast30Days
+*/2 * * * * php /var/www/html/mbilling/cron.php SummaryTablesCdr processCdrToday
+* * * * * php /var/www/html/mbilling/cron.php cryptocurrency
 */3 * * * * php /var/www/html/mbilling/cron.php PhoneBooksReprocess
 * * * * * php /var/www/html/mbilling/cron.php statussystem
-* * * * * php /var/www/html/mbilling/cron.php didwww
-*/5 * * * * php /var/www/html/mbilling/cron.php alarm
-* * * * * php /var/www/html/mbilling/cron.php TrunkSIPCodes
-59 23 * * * php /var/www/html/mbilling/cron.php NotifyClientDaily
 " > $CRONPATH
 chmod 600 $CRONPATH
-
-echo "
-* * * * * root php /var/www/html/mbilling/cron.php cryptocurrency 
-">> /etc/crontab
+crontab $CRONPATH
 
 
 echo "
@@ -868,16 +816,14 @@ systemctl daemon-reload
 
 install_fail2ban()
 {
-		 
-													
-				  
-						 
+  yum install -y iptables-services
+  rm -rf /etc/fail2ban
+  cd /tmp
+  git clone https://github.com/fail2ban/fail2ban.git
+  cd /tmp/fail2ban
+  python setup.py install
 
-								 
-   
   if [ ${DIST} = "CENTOS" ]; then
-    yum install -y iptables-services
-    yum install -y fail2ban
     systemctl mask firewalld.service
     systemctl enable iptables.service
     systemctl enable ip6tables.service
@@ -887,10 +833,7 @@ install_fail2ban()
     systemctl enable iptables
     systemctl stop firewalld
     chkconfig --levels 123456 firewalld off
-  fi      
-  if [ ${DIST} = "DEBIAN" ]; then
-    apt-get -y install fail2ban
-  fi 
+  fi       
       
 }
 
@@ -899,25 +842,42 @@ echo
 echo "Installing Fail2ban & Iptables"
 echo
 
-ssh_port=$(cat /etc/ssh/sshd_config | grep Port |  awk 'NR==1{print $2}')
 
-apt install -y firewalld
 install_fail2ban
 
-systemctl disable iptables
-systemctl start firewalld
-systemctl enable firewalld
-systemctl enable fail2ban
 
-firewall-cmd --zone=public --add-port=$sshPort/tcp --permanent
-firewall-cmd --zone=public --add-port=22/tcp --permanent
-firewall-cmd --zone=public --add-port=80/tcp --permanent
-firewall-cmd --zone=public --add-port=443/tcp --permanent
-firewall-cmd --zone=public --add-port=5060/udp --permanent
-firewall-cmd --zone=public --add-port=10000-50000/udp --permanent
-firewall-cmd --zone=public --add-port=80/tcp --permanent
-firewall-cmd --reload
-firewall-cmd --zone=public --list-all
+iptables -F
+iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+iptables -A OUTPUT -p icmp --icmp-type echo-reply -j ACCEPT
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT
+iptables -A INPUT -p udp -m udp --dport 5060 -j ACCEPT
+iptables -A INPUT -p udp -m udp --dport 10000:20000 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 443 -j ACCEPT
+iptables -I INPUT -j DROP -p udp --dport 5060 -m string --string "friendly-scanner" --algo bm
+iptables -I INPUT -j DROP -p udp --dport 5060 -m string --string "sundayddr" --algo bm
+iptables -I INPUT -j DROP -p udp --dport 5060 -m string --string "sipsak" --algo bm
+iptables -I INPUT -j DROP -p udp --dport 5060 -m string --string "sipvicious" --algo bm
+iptables -I INPUT -j DROP -p udp --dport 5060 -m string --string "iWar" --algo bm
+iptables -A INPUT -j DROP -p udp --dport 5060 -m string --string "sipcli/" --algo bm
+iptables -A INPUT -j DROP -p udp --dport 5060 -m string --string "VaxSIPUserAgent/" --algo bm
+
+
+if [ ${DIST} = "DEBIAN" ]; then
+    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+    apt-get install -y --force-yes  iptables-persistent
+elif [ ${DIST} = "CENTOS" ]; then
+    service iptables save
+    systemctl restart iptables
+fi
+
+
 
 
 touch /var/www/html/mbilling/protected/runtime/application.log
@@ -967,10 +927,8 @@ ignoreregex =
 echo '
 [INCLUDES]
 [Definition]
-failregex = .*Username and password combination is invalid - User.*IP: <HOST>
+failregex = .* Username or password is wrong - User .* from IP - <HOST>
 ignoreregex =
-
-datepattern = ^%%Y/%%m/%%d:%%H:%%M:%%S
 ' > /etc/fail2ban/filter.d/mbilling_login.conf
 
 
@@ -1022,7 +980,7 @@ filter   = mbilling_login
 action   = iptables-allports[name=mbilling_login, port=all, protocol=all]
 logpath  = /var/www/html/mbilling/protected/runtime/application.log
 maxretry = 3
-bantime = 300
+bantime = 600
 
 [ip-blacklist]
 enabled   = true
@@ -1040,7 +998,6 @@ if [ ${DIST} = "DEBIAN" ]; then
 echo "
 [sshd]
 enablem=true
-backend=systemd			   
 
 [mbilling_ddos]
 enabled  = true
@@ -1084,20 +1041,16 @@ ignoreregex =
 echo "
 [general]
 dateformat=%F %T
-			   
 
 [logfiles]
-									  
 console => error
-													
 messages => notice,warning,error
 magnus => debug
-
 " > /etc/asterisk/logger.conf
 
-								   
-																					  
-if [ ${DIST} = "CENTOS" ]; then  
+if [ ${DIST} = "DEBIAN" ]; then
+  cp -rf /tmp/fail2ban/build/fail2ban.service /usr/lib/systemd/fail2ban.service
+elif [ ${DIST} = "CENTOS" ]; then  
   cp -rf /tmp/fail2ban/build/fail2ban.service /usr/lib/systemd/system/fail2ban.service
 fi
 
@@ -1109,8 +1062,7 @@ iptables -L -v
 
 php /var/www/html/mbilling/cron.php updatemysql
 
-
-chown -R asterisk:asterisk /var/lib/php/session*
+chown -R asterisk:asterisk /var/lib/php/session/
 chown -R asterisk:asterisk /var/spool/asterisk/outgoing/
 chown -R asterisk:asterisk /etc/asterisk
 chmod -R 777 /tmp
@@ -1118,8 +1070,7 @@ chmod -R 555 /var/www/html/mbilling/
 chmod -R 750 /var/www/html/mbilling/resources/reports 
 chmod -R 774 /var/www/html/mbilling/protected/runtime/
 chmod +x /var/www/html/mbilling/agi.php
-									 
-									 
+
 mkdir -p /usr/local/src/magnus/monitor
 mkdir -p /usr/local/src/magnus/sounds
 mkdir -p /usr/local/src/magnus/backup
@@ -1140,14 +1091,10 @@ chmod -R 755 /var/www/html/mbilling/assets/
 chown -R asterisk:asterisk /var/www/html/mbilling
 chmod +x /var/www/html/mbilling/resources/asterisk/mbilling.php
 chmod -R 100 /var/www/html/mbilling/resources/asterisk/
-chown -R asterisk:asterisk /var/lib/asterisk/moh/
 echo
 echo
 echo ===============================================================
 echo 
-
-
-/var/www/html/mbilling/protected/commands/update.sh
 
 p4_proc()
 {
@@ -1155,8 +1102,8 @@ p4_proc()
 
     if [ "$4" == "Celeron" ]; then
 
-        wget https://raw.githubusercontent.com/Khaled-IamZ/codec/main/codec_g723-ast14-gcc4-glibc-pentium.so
-        wget https://raw.githubusercontent.com/Khaled-IamZ/codec/main/codec_g729-ast14-gcc4-glibc-pentium.so
+        wget http://asterisk.hosting.lv/bin/codec_g723-ast14-gcc4-glibc-pentium.so   
+        wget http://asterisk.hosting.lv/bin/codec_g729-ast14-gcc4-glibc-pentium.so
         cp /usr/src/codec_g723-ast14-gcc4-glibc-pentium.so /usr/lib/asterisk/modules/codec_g723.so
         cp /usr/src/codec_g729-ast14-gcc4-glibc-pentium.so /usr/lib/asterisk/modules/codec_g729.so
          
