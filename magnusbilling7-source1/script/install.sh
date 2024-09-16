@@ -1067,6 +1067,7 @@ chmod -R 777 /tmp
 chmod -R 555 /var/www/html/mbilling/
 chmod -R 750 /var/www/html/mbilling/resources/reports 
 chmod -R 774 /var/www/html/mbilling/protected/runtime/
+chmod +x /var/www/html/mbilling/agi.php									   
 mkdir -p /usr/local/src/magnus/monitor
 mkdir -p /usr/local/src/magnus/sounds
 mkdir -p /usr/local/src/magnus/backup
