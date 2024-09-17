@@ -27,22 +27,24 @@ fi
 get_linux_distribution ()
 { 
     if [ -f /etc/debian_version ]; then
-        DIST="DEBIAN"
-        HTTP_DIR="/etc/apache2/"
-        HTTP_CONFIG=${HTTP_DIR}"apache2.conf"
-										  
-        MYSQL_CONFIG="/etc/mysql/mariadb.conf.d/50-server.cnf"
-    elif [ -f /etc/redhat-release ]; then
-        DIST="CENTOS"
-        HTTP_DIR="/etc/httpd/"
-        HTTP_CONFIG=${HTTP_DIR}"conf/httpd.conf"
-							  
-        MYSQL_CONFIG="/etc/my.cnf"
-    else
-        DIST="OTHER"
-        echo 'Installation does not support your distribution'
-        exit 1
-    fi
+    DIST="DEBIAN"
+    HTTP_DIR="/etc/apache2/"
+    HTTP_CONFIG=${HTTP_DIR}"apache2.conf"
+    MYSQL_CONFIG="/etc/mysql/mariadb.conf.d/50-server.cnf"
+    # Recarregar o Apache para Debian/Ubuntu
+    sudo systemctl reload apache2
+elif [ -f /etc/redhat-release ]; then
+    DIST="CENTOS"
+    HTTP_DIR="/etc/httpd/"
+    HTTP_CONFIG=${HTTP_DIR}"conf/httpd.conf"
+    MYSQL_CONFIG="/etc/my.cnf"
+    # Recarregar o Apache para CentOS/RedHat
+    sudo systemctl reload httpd
+else
+    DIST="OTHER"
+    echo 'Installation does not support your distribution'
+    exit 1
+fi
 }
 
 
