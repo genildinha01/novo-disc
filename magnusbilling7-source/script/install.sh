@@ -413,17 +413,18 @@ if [ ${DIST} = "DEBIAN" ]; then
     systemctl start mariadb
     systemctl enable apache2 
     systemctl enable mariadb
-    chkconfig ntp on
-else [ -f /etc/redhat-release ]
+    systemctl enable ntp
+else
+    # Aqui deve estar o código para o caso CentOS/Red Hat
     systemctl enable httpd
     systemctl enable mariadb
     systemctl start mariadb
-    chkconfig ntpd on
+    systemctl enable ntpd
 fi
 
 
+mysql -uroot -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
 
-mysql -uroot -e "SET PASSWORD FOR 'root'@localhost = PASSWORD('${password}'); FLUSH PRIVILEGES;"
   
 
 
