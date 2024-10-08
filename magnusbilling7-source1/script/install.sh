@@ -21,7 +21,7 @@ sleep 3
 
 if [[ -f /var/www/html/mbilling/index.php ]]; then
   echo "This server already has MagnusBilling installed";
-  exit;
+  
 fi
 # Linux Distribution CentOS or Debian
 get_linux_distribution ()
